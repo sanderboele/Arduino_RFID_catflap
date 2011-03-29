@@ -18,16 +18,57 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-#define unlockSeconds 5 //number of seconds the flap stays unlocked
-#define whiteLed 13 //status LED
-#define motorLeft 10  //black, L293D pin 7
-#define motorRight 11 //red, L293D pin 3
-#define motorTime 100 //number of msec the motor is running for flap to open or close
+  
+const unlockSeconds 5; //number of seconds the flap stays unlocked
+const whiteLed 13; //status LED
+const motorLeft 10; //black, L293D pin 7
+const motorRight 11; //red, L293D pin 3
+const motorTime 100; //number of msec the motor is running for flap to open or close
+
+
+//define the pins where the dipswitches are located for unlocktime
+const byte DIPS[] = { 3, 4, 5, 6 };
+const byte DIPSIZE = 4;
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
 volatile byte operationalMode = 0; // 0=normal, 1=always open triggered by interrupt
 volatile static unsigned long lastInterruptTime = 0; //debounce counter for operational button
 byte numTags = EEPROM.read(0);
+
+int getUnlockTime()
+{
+  int unlockTime = 0;
+  for (int thisDip = 0; thisDip < DIPSIZE; thisDip++)
+  {
+    /* 
+    dip 0 = 2^0 = 1
+    dip 1 = 2^1 = 2
+    dip 2 = 2^2 = 4
+    dip 3 = 2^3 = 8
+    */
+    
+    if (digitalRead(DIPS[thisDip]) == HIGH )
+    {
+      byte increment = 0;
+      switch (thisDip)
+      {
+        case 0:
+          increment = 1;
+          break;
+        case 1:
+          increment = 2;
+          break;
+        case 2;
+          increment = 4;
+          break;
+        case 3;
+          increment = 8;
+          break; 
+      }
+      unlockTime = unlockTime + increment; 
+    }
+    return unlockTime;
+}
 
 bool readTag(byte *tagBytes)
 {
@@ -180,6 +221,7 @@ void writeTag(byte tagValue[])
    }
 }
 
+
 void normalOperation()
 {
   byte tagBytes[6];
@@ -236,6 +278,9 @@ void setup()
   Serial.println("Program started");
   digitalWrite(motorRight, LOW);
   digitalWrite(motorLeft, LOW);
+  for (int thisDip = 0; thisDip < DIPSIZE; thisDip++)
+    pinMode(DIPS[thisDip], INPUT);
+
 }
 
 void loop()
