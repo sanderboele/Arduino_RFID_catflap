@@ -25,7 +25,7 @@ const byte motorRight = 11; //red, L293D pin 3
 const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
 //define the pins where the dipswitches or regular switches are located for unlocktime
-const byte DIPS[] = { 3, 4, 5, 6 };
+const byte DIPS[4] = { 3, 4, 5, 6 };
 const byte DIPSIZE = 4;
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
@@ -44,10 +44,14 @@ int getUnlockTime()
     dip 2 = 2^2 = 4
     dip 3 = 2^3 = 8
     */
-    
+    Serial.print("Dip is now: ");
+    Serial.println(thisDip);
     if (digitalRead(DIPS[thisDip]) == HIGH)
     {
       byte increment = 0;
+      Serial.print("Dip ");
+      Serial.print(thisDip);
+      Serial.println("is high!");
       switch (thisDip)
       {
         case 0:
@@ -61,12 +65,12 @@ int getUnlockTime()
           break;
         case 3:
           increment = 8;
-          break; 
+          break;
       }
       unlockTime = unlockTime + increment; 
     }
-    return unlockTime;
   }
+  return unlockTime;
 }  
 
 bool readTag(byte *tagBytes)
