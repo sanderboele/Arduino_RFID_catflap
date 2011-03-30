@@ -19,11 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
   
-const unlockSeconds 5; //number of seconds the flap stays unlocked
-const whiteLed 13; //status LED
-const motorLeft 10; //black, L293D pin 7
-const motorRight 11; //red, L293D pin 3
-const motorTime 100; //number of msec the motor is running for flap to open or close
+const byte whiteLed = 13; //status LED
+const byte motorLeft = 10; //black, L293D pin 7
+const byte motorRight = 11; //red, L293D pin 3
+const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
 
 //define the pins where the dipswitches are located for unlocktime
@@ -47,7 +46,7 @@ int getUnlockTime()
     dip 3 = 2^3 = 8
     */
     
-    if (digitalRead(DIPS[thisDip]) == HIGH )
+    if (digitalRead(DIPS[thisDip]) == HIGH)
     {
       byte increment = 0;
       switch (thisDip)
@@ -58,17 +57,18 @@ int getUnlockTime()
         case 1:
           increment = 2;
           break;
-        case 2;
+        case 2:
           increment = 4;
           break;
-        case 3;
+        case 3:
           increment = 8;
           break; 
       }
       unlockTime = unlockTime + increment; 
     }
     return unlockTime;
-}
+  }
+}  
 
 bool readTag(byte *tagBytes)
 {
@@ -232,7 +232,7 @@ void normalOperation()
     if (checkTag(tagBytes))
     {
       Serial.println("Authorized tag");
-      openFlap(unlockSeconds);
+      openFlap(getUnlockTime());
     }
     else
       Serial.println("Tag not authorized");
@@ -280,7 +280,6 @@ void setup()
   digitalWrite(motorLeft, LOW);
   for (int thisDip = 0; thisDip < DIPSIZE; thisDip++)
     pinMode(DIPS[thisDip], INPUT);
-
 }
 
 void loop()
