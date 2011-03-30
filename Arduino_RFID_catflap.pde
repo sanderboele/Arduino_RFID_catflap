@@ -24,7 +24,6 @@ const byte motorLeft = 10; //black, L293D pin 7
 const byte motorRight = 11; //red, L293D pin 3
 const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
-
 //define the pins where the dipswitches or regular switches are located for unlocktime
 const byte DIPS[] = { 3, 4, 5, 6 };
 const byte DIPSIZE = 4;
