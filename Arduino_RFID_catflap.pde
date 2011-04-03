@@ -19,9 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
   
-const byte whiteLed = 13; //status LED pin
-const byte motorLeft = 10; //black, L293D pin 7
-const byte motorRight = 11; //red, L293D pin 3
+const byte greenLed = 13; //status LED pin
+const byte redLed = 12;
+const byte blueLed = 11;
+
+const byte motorLeft = 9; //black, L293D pin 7
+const byte motorRight = 10; //red, L293D pin 3
 const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
 //define the pins where the dipswitches or regular switches are located for unlocktime
@@ -35,6 +38,7 @@ byte numTags = EEPROM.read(0);
 
 int getUnlockTime()
 {
+  //reads the unlocktime from a dipswitch, or some other switches.
   int unlockTime = 0;
   for (int thisDip = 0; thisDip < DIPSIZE; thisDip++)
   {
@@ -44,14 +48,9 @@ int getUnlockTime()
     dip 2 = 2^2 = 4
     dip 3 = 2^3 = 8
     */
-    Serial.print("Dip is now: ");
-    Serial.println(thisDip);
     if (digitalRead(DIPS[thisDip]) == HIGH)
     {
       byte increment = 0;
-      Serial.print("Dip ");
-      Serial.print(thisDip);
-      Serial.println("is high!");
       switch (thisDip)
       {
         case 0:
@@ -123,7 +122,6 @@ bool readTag(byte *tagBytes)
         }
       }
       bytesRead = 0;
-      Serial.flush(); //no historicaly buffered kitties here!
       return true;
     }
   }
@@ -135,14 +133,16 @@ void openFlap(byte seconds) //opens flap for the supplied amount of time
   delay(motorTime);
   digitalWrite(motorLeft, LOW);
   Serial.println("Flap opened");
+  digitalWrite(redLed, LOW);
+  digitalWrite(greenLed, HIGH);
   flapOpen = true;
-  digitalWrite(whiteLed, LOW);
   delay((seconds * 1000)+10);
   digitalWrite(motorRight, HIGH);
   delay(motorTime);
   digitalWrite(motorRight, LOW);
   Serial.println("Flap closed");
-  digitalWrite(whiteLed, HIGH);
+  digitalWrite(redLed, HIGH);
+  digitalWrite(greenLed, LOW);
   flapOpen = false;
 } 
 
@@ -155,7 +155,8 @@ void openFlapPermanently()
     delay(motorTime);
     digitalWrite(motorLeft, LOW);
     flapOpen = true;
-    digitalWrite(whiteLed, LOW);
+    digitalWrite(redLed, LOW);
+    digitalWrite(greenLed, HIGH);
   }
 }
 
@@ -168,10 +169,10 @@ void closeFlap()
    delay(motorTime);
    digitalWrite(motorRight, LOW);
    flapOpen = false;
-   digitalWrite(whiteLed, HIGH); 
+   digitalWrite(greenLed, LOW);
+   digitalWrite(redLed, HIGH); 
   } 
 }
-
 
 boolean checkTag(byte tagBytes[])
 {
@@ -217,13 +218,10 @@ void writeTag(byte tagValue[])
        Serial.print(i, DEC);
        Serial.print(" with value: ");
        Serial.println(tagValue[(i-1)%5], HEX);
-       //Serial.print("With modulo= ");
-       //Serial.println((i-1)%5, DEC);
        EEPROM.write(i, tagValue[(i-1)%5]);
      }
    }
 }
-
 
 void normalOperation()
 {
@@ -245,15 +243,20 @@ void normalOperation()
 
 void programmingMode()
 {
-  Serial.println("Entered programm mode");
+  digitalWrite(redLed, LOW);
+  digitalWrite(greenLed, LOW);
+  digitalWrite(blueLed, HIGH);
   byte tagBytes[6];
   if (readTag(&tagBytes[0]))
     writeTag(tagBytes);
+  operationalMode == 0;
+  digitalWrite(blueLed, LOW);
 }
 
 void changeOperationalMode() //toggle between normal and always open via interrupt 0 = digital pin2
 {
   volatile unsigned long interruptTime = millis();
+  
   if (interruptTime - lastInterruptTime > 500)
   {
     Serial.flush();
@@ -264,7 +267,7 @@ void changeOperationalMode() //toggle between normal and always open via interru
     }
     else
     {
-      operationalMode = 0;  //goto normal operation
+      operationalMode = 0; //goto normal
       Serial.println("Going to normal operation");
     }
     lastInterruptTime = interruptTime;
@@ -276,7 +279,9 @@ void setup()
   attachInterrupt(0, changeOperationalMode, RISING); //button for toggeling operational mode (dig pin 2)
   pinMode(motorLeft, OUTPUT);
   pinMode(motorRight, OUTPUT);
-  pinMode(whiteLed, OUTPUT);  
+  pinMode(greenLed, OUTPUT);  
+  pinMode(redLed, OUTPUT);  
+  pinMode(blueLed, OUTPUT);  
   Serial.begin(9600);
   Serial.println("Program started");
   digitalWrite(motorRight, LOW);
@@ -294,7 +299,7 @@ void loop()
   {
     if (operationalMode == 0)
       normalOperation();
-    else
+    else if (operationalMode == 1)
       openFlapPermanently();
   }
 }
