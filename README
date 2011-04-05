@@ -1,0 +1,11 @@
+This is my attempt at doing something useful with my otherwise
+not so useful Staywell 500 catflap. I have two of these and I keep
+repairing my installed flap with parts from the spare flap.
+
+I grew tired of this, so I started working on a little Arduino project to hook up
+the motor of the flap to a home made circuit and put an RFID antenna in the tunnel 
+of the flap. My cat is wearing an RFID tag around it's neck to open the flap. It is 
+robust and it never runs out of power.
+
+The main parts consist of an 7805 regulator, an Arduino pro mini, an L293D motor controller
+chip and Seeed studio's Electronic brick - 125Khz RFID Card Reader.
