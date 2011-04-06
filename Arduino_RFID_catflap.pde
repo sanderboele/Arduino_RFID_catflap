@@ -18,17 +18,18 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-  
-const byte greenLed = 13; //status LED pin
-const byte redLed = 12;
-const byte blueLed = 11;
+const byte redLed = 11 
+const byte greenLed = 12; //status LED pin
+const byte blueLed = 13;
 
 const byte motorLeft = 9; //black, L293D pin 7
 const byte motorRight = 10; //red, L293D pin 3
 const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
+//digital pin 2 and 3 are interrupts 0 and 1
+
 //define the pins where the dipswitches or regular switches are located for unlocktime
-const byte DIPS[4] = { 3, 4, 5, 6 };
+const byte DIPS[4] = { 4, 5, 6, 7 };
 const byte DIPSIZE = 4;
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
