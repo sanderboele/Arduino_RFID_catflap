@@ -72,7 +72,7 @@ int getUnlockTime()
   }
   return unlockTime;
 }  
-
+//taken fromt the Arduino playground http://www.arduino.cc/playground/Code/ID12
 bool readTag(byte *tagBytes)
 {
   byte val = 0;
