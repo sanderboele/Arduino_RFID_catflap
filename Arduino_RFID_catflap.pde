@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-const byte redLed = 11 
+const byte redLed = 11; 
 const byte greenLed = 12; //status LED pin
 const byte blueLed = 13;
 
@@ -26,7 +26,7 @@ const byte motorLeft = 9; //black, L293D pin 7
 const byte motorRight = 10; //red, L293D pin 3
 const byte motorTime = 100; //number of msec the motor is running for flap to open or close
 
-//digital pin 2 and 3 are interrupts 0 and 1
+//digital pin 2 and 3 are interrupts 0 and 1 for operationalmode and programming mode
 
 //define the pins where the dipswitches or regular switches are located for unlocktime
 const byte DIPS[4] = { 4, 5, 6, 7 };
@@ -34,8 +34,7 @@ const byte DIPSIZE = 4;
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
 volatile byte operationalMode = 0; // 0=normal, 1=always open triggered by interrupt
-volatile static unsigned long lastInterruptTime = 0; //debounce counter for operational button
-byte numTags = EEPROM.read(0);
+volatile static unsigned long lastInterruptTime = 0; //debounce counter for buttons
 
 int getUnlockTime()
 {
@@ -177,7 +176,7 @@ void closeFlap()
 
 boolean checkTag(byte tagBytes[])
 {
-  boolean match;
+  boolean match = false;
   byte numTags = EEPROM.read(0);
   if (numTags > 0)
   {
@@ -244,15 +243,40 @@ void normalOperation()
 
 void programmingMode()
 {
-  digitalWrite(redLed, LOW);
-  digitalWrite(greenLed, LOW);
-  digitalWrite(blueLed, HIGH);
-  byte tagBytes[6];
-  if (readTag(&tagBytes[0]))
-    writeTag(tagBytes);
-  operationalMode == 0;
-  digitalWrite(blueLed, LOW);
+  volatile unsigned long interruptTime = millis();
+  if (interruptTime - lastInterruptTime > 500)
+  {
+    volatile byte numTags = EEPROM.read(0);
+    volatile byte newNumTags = numTags;
+    digitalWrite(redLed, LOW);
+    digitalWrite(greenLed, LOW);
+    digitalWrite(blueLed, HIGH);
+    byte tagBytes[6];
+    while (newNumTags == numTags)
+    {
+      if (readTag(&tagBytes[0]))
+        writeTag(tagBytes);
+      newNumTags = EEPROM.read(0);
+    }
+    operationalMode = 0;
+    digitalWrite(blueLed, LOW);
+    digitalWrite(redLed, HIGH);
+    lastInterruptTime = interruptTime;
+  }
 }
+
+void firstTag()
+{
+    Serial.flush();
+    digitalWrite(redLed, LOW);
+    digitalWrite(greenLed, LOW);
+    digitalWrite(blueLed, HIGH);
+    byte tagBytes[6];
+    if (readTag(&tagBytes[0]))
+      writeTag(tagBytes);
+    digitalWrite(blueLed, LOW);
+}
+
 
 void changeOperationalMode() //toggle between normal and always open via interrupt 0 = digital pin2
 {
@@ -278,6 +302,7 @@ void changeOperationalMode() //toggle between normal and always open via interru
 void setup()   
 { 
   attachInterrupt(0, changeOperationalMode, RISING); //button for toggeling operational mode (dig pin 2)
+  attachInterrupt(1, programmingMode, RISING); //button for toggeling to programming mode (dig pin 3)
   pinMode(motorLeft, OUTPUT);
   pinMode(motorRight, OUTPUT);
   pinMode(greenLed, OUTPUT);  
@@ -295,7 +320,7 @@ void loop()
 {
   byte numTags = EEPROM.read(0);
   if (numTags == 0)
-    programmingMode();
+    firstTag();
   else
   {
     if (operationalMode == 0)
