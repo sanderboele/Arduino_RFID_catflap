@@ -32,9 +32,13 @@ const byte motorTime = 100; //number of msec the motor is running for flap to op
 const byte DIPS[4] = { 4, 5, 6, 7 };
 const byte DIPSIZE = 4;
 
+const int DEBOUNCE_TIME = 400; //msec debounce timer
+
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
-volatile byte operationalMode = 0; // 0=normal, 1=always open triggered by interrupt
-volatile static unsigned long lastInterruptTime = 0; //debounce counter for buttons
+volatile byte operationalMode = 0; // 0=normal, 1=always open, 2=programming mode triggered by interrupt
+
+volatile static unsigned long lastInterruptTime = 0;
+volatile static unsigned long lastInterruptTime2 = 0;
 
 int getUnlockTime()
 {
@@ -118,13 +122,15 @@ bool readTag(byte *tagBytes)
             for (int k=0; k<=5; k++)
               Serial.print(tagBytes[k], HEX);
             Serial.println();
+            if (tagBytes[5] == checksum)
+              return true;
           }
         }
       }
       bytesRead = 0;
-      return true;
     }
   }
+  return false;
 }
 
 void openFlap(byte seconds) //opens flap for the supplied amount of time
@@ -184,18 +190,24 @@ boolean checkTag(byte tagBytes[])
     Serial.println(numTags, DEC);
     for (int tag=0; tag < numTags; tag++)
     {
+      Serial.print("Checking tag # ");
+      Serial.println(tag);
       for (int i=(tag * 5)+1; i<= (tag * 5) + 5; i++)
       {  
         if (tagBytes[(i-1)%5] == EEPROM.read(i))
           match = true;
         else
         {
+          Serial.println("tag NOT in EEPROM");
           match = false;
           break;
         }
       }
       if (match)
+      { 
+        Serial.println("tag found in EEPROM");
         return true;
+      }
     }
   }
   else
@@ -241,49 +253,49 @@ void normalOperation()
   }
 }
 
-void programmingMode()
+
+void hitProgrammingMode()
 {
-  volatile unsigned long interruptTime = millis();
-  if (interruptTime - lastInterruptTime > 500)
+  unsigned long interruptTime2 = millis(); 
+  if (interruptTime2 - lastInterruptTime2 > DEBOUNCE_TIME)
   {
-    volatile byte numTags = EEPROM.read(0);
-    volatile byte newNumTags = numTags;
-    digitalWrite(redLed, LOW);
-    digitalWrite(greenLed, LOW);
-    digitalWrite(blueLed, HIGH);
-    byte tagBytes[6];
-    while (newNumTags == numTags)
-    {
-      if (readTag(&tagBytes[0]))
-        writeTag(tagBytes);
-      newNumTags = EEPROM.read(0);
-    }
-    operationalMode = 0;
-    digitalWrite(blueLed, LOW);
-    digitalWrite(redLed, HIGH);
-    lastInterruptTime = interruptTime;
+    operationalMode = 2;
+    lastInterruptTime2 = interruptTime2;
   }
 }
 
-void firstTag()
+void programmingMode()
 {
+  byte tagBytes[6]= {0,0,0,0,0,0};
+  Serial.println("Programming mode");
+  byte numTags = EEPROM.read(0);
+  Serial.print("Following nr of tags in EEPROM: ");
+  Serial.println(numTags, DEC);
+  byte newNumTags = numTags;
+  digitalWrite(redLed, LOW);
+  digitalWrite(greenLed, LOW);
+  digitalWrite(blueLed, HIGH);
+  unsigned long startTime = millis();
+  while ((newNumTags == numTags) && (startTime > (millis() - 10000)))
+  {
     Serial.flush();
-    digitalWrite(redLed, LOW);
-    digitalWrite(greenLed, LOW);
-    digitalWrite(blueLed, HIGH);
-    byte tagBytes[6];
+    //Serial.println("In the while newNumTags == numTags");
     if (readTag(&tagBytes[0]))
       writeTag(tagBytes);
-    digitalWrite(blueLed, LOW);
+    newNumTags = EEPROM.read(0);
+  }
+  operationalMode = 0;
+  digitalWrite(blueLed, LOW);
+  digitalWrite(redLed, HIGH);
 }
-
 
 void changeOperationalMode() //toggle between normal and always open via interrupt 0 = digital pin2
 {
-  volatile unsigned long interruptTime = millis();
+  unsigned long interruptTime = millis();
   
-  if (interruptTime - lastInterruptTime > 500)
+  if (interruptTime - lastInterruptTime > DEBOUNCE_TIME)
   {
+    Serial.println("changeOperationalMode triggered");
     Serial.flush();
     if (operationalMode == 0)
     {
@@ -302,7 +314,7 @@ void changeOperationalMode() //toggle between normal and always open via interru
 void setup()   
 { 
   attachInterrupt(0, changeOperationalMode, RISING); //button for toggeling operational mode (dig pin 2)
-  attachInterrupt(1, programmingMode, RISING); //button for toggeling to programming mode (dig pin 3)
+  attachInterrupt(1, hitProgrammingMode, RISING); //button for toggeling to programming mode (dig pin 3)
   pinMode(motorLeft, OUTPUT);
   pinMode(motorRight, OUTPUT);
   pinMode(greenLed, OUTPUT);  
@@ -320,12 +332,14 @@ void loop()
 {
   byte numTags = EEPROM.read(0);
   if (numTags == 0)
-    firstTag();
+    programmingMode();
   else
   {
     if (operationalMode == 0)
       normalOperation();
     else if (operationalMode == 1)
       openFlapPermanently();
+    else
+      programmingMode();
   }
 }
