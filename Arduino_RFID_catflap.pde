@@ -32,7 +32,7 @@ const byte motorTime = 100; //number of msec the motor is running for flap to op
 const byte DIPS[4] = { 4, 5, 6, 7 };
 const byte DIPSIZE = 4;
 
-const int DEBOUNCE_TIME = 400; //msec debounce timer
+const int DEBOUNCE_TIME = 500; //msec debounce timer
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
 volatile byte operationalMode = 0; // 0=normal, 1=always open, 2=programming mode triggered by interrupt
@@ -75,7 +75,7 @@ int getUnlockTime()
   }
   return unlockTime;
 }  
-//taken fromt the Arduino playground http://www.arduino.cc/playground/Code/ID12
+//adapted from the Arduino playground http://www.arduino.cc/playground/Code/ID12
 bool readTag(byte *tagBytes)
 {
   byte val = 0;
@@ -276,10 +276,8 @@ void programmingMode()
   digitalWrite(greenLed, LOW);
   digitalWrite(blueLed, HIGH);
   unsigned long startTime = millis();
-  while ((newNumTags == numTags) && (startTime > (millis() - 10000)))
+  while ((newNumTags == numTags) &&  (millis() < (startTime + 10000)))
   {
-    Serial.flush();
-    //Serial.println("In the while newNumTags == numTags");
     if (readTag(&tagBytes[0]))
       writeTag(tagBytes);
     newNumTags = EEPROM.read(0);
@@ -331,15 +329,10 @@ void setup()
 void loop()
 {
   byte numTags = EEPROM.read(0);
-  if (numTags == 0)
-    programmingMode();
+  if (operationalMode == 0 && numTags > 0)
+    normalOperation();
+  else if (operationalMode == 1 && numTags > 0)
+    openFlapPermanently();
   else
-  {
-    if (operationalMode == 0)
-      normalOperation();
-    else if (operationalMode == 1)
-      openFlapPermanently();
-    else
-      programmingMode();
-  }
+    programmingMode();
 }
