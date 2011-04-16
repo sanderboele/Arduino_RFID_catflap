@@ -113,15 +113,18 @@ bool readTag(byte *tagBytes)
           if (bytesRead == 12) 
           {
             tagValue[10] = '\0';  
+            /*
             Serial.print("Tag value: ");
             Serial.println(tagValue);
             Serial.print("Checksum: ");
             Serial.print(tagBytes[5], HEX);
             Serial.println(tagBytes[5] == checksum ? " -- passed." : " -- error.");
             Serial.print("Tagbyte value: ");
+            
             for (int k=0; k<=5; k++)
               Serial.print(tagBytes[k], HEX);
             Serial.println();
+            */
             if (tagBytes[5] == checksum)
               return true;
           }
@@ -138,7 +141,7 @@ void openFlap(byte seconds) //opens flap for the supplied amount of time
   digitalWrite(motorLeft, HIGH);
   delay(motorTime);
   digitalWrite(motorLeft, LOW);
-  Serial.println("Flap opened");
+  //Serial.println("Flap opened");
   digitalWrite(redLed, LOW);
   digitalWrite(greenLed, HIGH);
   flapOpen = true;
@@ -146,7 +149,7 @@ void openFlap(byte seconds) //opens flap for the supplied amount of time
   digitalWrite(motorRight, HIGH);
   delay(motorTime);
   digitalWrite(motorRight, LOW);
-  Serial.println("Flap closed");
+  //Serial.println("Flap closed");
   digitalWrite(redLed, HIGH);
   digitalWrite(greenLed, LOW);
   flapOpen = false;
@@ -156,7 +159,7 @@ void openFlapPermanently()
 {
   if (!flapOpen)
   {
-    Serial.println("Opening flap permanently.");
+    //Serial.println("Opening flap permanently.");
     digitalWrite(motorLeft, HIGH);
     delay(motorTime);
     digitalWrite(motorLeft, LOW);
@@ -170,7 +173,7 @@ void closeFlap()
 {
  if (flapOpen)
  {
-   Serial.println("Closing flap.");
+   //Serial.println("Closing flap.");
    digitalWrite(motorRight, HIGH);
    delay(motorTime);
    digitalWrite(motorRight, LOW);
@@ -186,32 +189,32 @@ boolean checkTag(byte tagBytes[])
   byte numTags = EEPROM.read(0);
   if (numTags > 0)
   {
-    Serial.print("Following number of tags appear to be in EEPROM: ");
-    Serial.println(numTags, DEC);
+    //Serial.print("Following number of tags appear to be in EEPROM: ");
+    //Serial.println(numTags, DEC);
     for (int tag=0; tag < numTags; tag++)
     {
-      Serial.print("Checking tag # ");
-      Serial.println(tag);
+      //Serial.print("Checking tag # ");
+      //Serial.println(tag);
       for (int i=(tag * 5)+1; i<= (tag * 5) + 5; i++)
       {  
         if (tagBytes[(i-1)%5] == EEPROM.read(i))
           match = true;
         else
         {
-          Serial.println("tag NOT in EEPROM");
+          //Serial.println("tag NOT in EEPROM");
           match = false;
           break;
         }
       }
       if (match)
       { 
-        Serial.println("tag found in EEPROM");
+        //Serial.println("tag found in EEPROM");
         return true;
       }
     }
   }
   else
-    Serial.println("No tags in EEPROM");
+    //Serial.println("No tags in EEPROM");
   return false;
 }
 
@@ -225,11 +228,13 @@ void writeTag(byte tagValue[])
    {
      EEPROM.write(0, numTags+1);
      for (int i=(numTags * 5) +1; i<= (numTags * 5) + 5; i++)
-     {  
+     { 
+       /* 
        Serial.print("Now writing to EEPROM location: ");
        Serial.print(i, DEC);
        Serial.print(" with value: ");
        Serial.println(tagValue[(i-1)%5], HEX);
+       */
        EEPROM.write(i, tagValue[(i-1)%5]);
      }
    }
@@ -244,15 +249,14 @@ void normalOperation()
   {
     if (checkTag(tagBytes))
     {
-      Serial.println("Authorized tag");
+      //Serial.println("Authorized tag");
       openFlap(getUnlockTime());
     }
     else
-      Serial.println("Tag not authorized");
+      //Serial.println("Tag not authorized");
     Serial.flush();
   }
 }
-
 
 void hitProgrammingMode()
 {
@@ -267,10 +271,10 @@ void hitProgrammingMode()
 void programmingMode()
 {
   byte tagBytes[6]= {0,0,0,0,0,0};
-  Serial.println("Programming mode");
+  //Serial.println("Programming mode");
   byte numTags = EEPROM.read(0);
-  Serial.print("Following nr of tags in EEPROM: ");
-  Serial.println(numTags, DEC);
+  //Serial.print("Following nr of tags in EEPROM: ");
+  //Serial.println(numTags, DEC);
   byte newNumTags = numTags;
   digitalWrite(redLed, LOW);
   digitalWrite(greenLed, LOW);
@@ -293,17 +297,17 @@ void changeOperationalMode() //toggle between normal and always open via interru
   
   if (interruptTime - lastInterruptTime > DEBOUNCE_TIME)
   {
-    Serial.println("changeOperationalMode triggered");
+    //Serial.println("changeOperationalMode triggered");
     Serial.flush();
     if (operationalMode == 0)
     {
       operationalMode = 1; //goto always open
-      Serial.println("Always open mode");
+      //Serial.println("Always open mode");
     }
     else
     {
       operationalMode = 0; //goto normal
-      Serial.println("Going to normal operation");
+      //Serial.println("Going to normal operation");
     }
     lastInterruptTime = interruptTime;
   }
@@ -318,8 +322,8 @@ void setup()
   pinMode(greenLed, OUTPUT);  
   pinMode(redLed, OUTPUT);  
   pinMode(blueLed, OUTPUT);  
-  Serial.begin(9600);
-  Serial.println("Program started");
+  //Serial.begin(9600);
+  //Serial.println("Program started");
   digitalWrite(motorRight, LOW);
   digitalWrite(motorLeft, LOW);
   for (int thisDip = 0; thisDip < DIPSIZE; thisDip++)
@@ -329,10 +333,11 @@ void setup()
 void loop()
 {
   byte numTags = EEPROM.read(0);
-  if (operationalMode == 0 && numTags > 0)
-    normalOperation();
-  else if (operationalMode == 1 && numTags > 0)
+  
+  if (operationalMode == 1 && numTags > 0)
     openFlapPermanently();
-  else
+  else if (numTags == 0 || operationalMode == 2)
     programmingMode();
+  else
+    normalOperation();  
 }
