@@ -24,7 +24,7 @@ const byte blueLed = 13;
 
 const byte motorLeft = 9; //black, L293D pin 7
 const byte motorRight = 10; //red, L293D pin 3
-const byte motorTime = 100; //number of msec the motor is running for flap to open or close
+const byte motorTime = 110; //number of msec the motor is running for flap to open or close
 
 //digital pin 2 and 3 are interrupts 0 and 1 for operationalmode and programming mode
 
@@ -251,10 +251,10 @@ void normalOperation()
     {
       //Serial.println("Authorized tag");
       openFlap(getUnlockTime());
+      Serial.flush();
     }
-    else
+    //else
       //Serial.println("Tag not authorized");
-    Serial.flush();
   }
 }
 
@@ -298,7 +298,6 @@ void changeOperationalMode() //toggle between normal and always open via interru
   if (interruptTime - lastInterruptTime > DEBOUNCE_TIME)
   {
     //Serial.println("changeOperationalMode triggered");
-    Serial.flush();
     if (operationalMode == 0)
     {
       operationalMode = 1; //goto always open
@@ -306,6 +305,7 @@ void changeOperationalMode() //toggle between normal and always open via interru
     }
     else
     {
+      Serial.flush();
       operationalMode = 0; //goto normal
       //Serial.println("Going to normal operation");
     }
@@ -322,7 +322,7 @@ void setup()
   pinMode(greenLed, OUTPUT);  
   pinMode(redLed, OUTPUT);  
   pinMode(blueLed, OUTPUT);  
-  //Serial.begin(9600);
+  Serial.begin(9600);
   //Serial.println("Program started");
   digitalWrite(motorRight, LOW);
   digitalWrite(motorLeft, LOW);
