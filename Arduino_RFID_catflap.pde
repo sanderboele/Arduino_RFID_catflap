@@ -32,6 +32,8 @@ const byte motorTime = 110; //number of msec the motor is running for flap to op
 const byte DIPS[4] = { 4, 5, 6, 7 };
 const byte DIPSIZE = 4;
 
+const byte BRIGHTNESS = 64; //PWM for led that is always on. Saves power :)
+
 const int DEBOUNCE_TIME = 500; //msec debounce timer
 
 boolean flapOpen = true; //asume that initial flap state is open, so the program closes it.
@@ -142,7 +144,7 @@ void openFlap(byte seconds) //opens flap for the supplied amount of time
   delay(motorTime);
   digitalWrite(motorLeft, LOW);
   //Serial.println("Flap opened");
-  digitalWrite(redLed, LOW);
+  analogWrite(redLed, 0);
   digitalWrite(greenLed, HIGH);
   flapOpen = true;
   delay((seconds * 1000)+10);
@@ -150,7 +152,7 @@ void openFlap(byte seconds) //opens flap for the supplied amount of time
   delay(motorTime);
   digitalWrite(motorRight, LOW);
   //Serial.println("Flap closed");
-  digitalWrite(redLed, HIGH);
+  analogWrite(redLed, BRIGHTNESS);
   digitalWrite(greenLed, LOW);
   flapOpen = false;
 } 
@@ -164,7 +166,7 @@ void openFlapPermanently()
     delay(motorTime);
     digitalWrite(motorLeft, LOW);
     flapOpen = true;
-    digitalWrite(redLed, LOW);
+    analogWrite(redLed, 0);
     digitalWrite(greenLed, HIGH);
   }
 }
@@ -179,7 +181,7 @@ void closeFlap()
    digitalWrite(motorRight, LOW);
    flapOpen = false;
    digitalWrite(greenLed, LOW);
-   digitalWrite(redLed, HIGH); 
+   analogWrite(redLed, BRIGHTNESS); 
   } 
 }
 
@@ -276,7 +278,7 @@ void programmingMode()
   //Serial.print("Following nr of tags in EEPROM: ");
   //Serial.println(numTags, DEC);
   byte newNumTags = numTags;
-  digitalWrite(redLed, LOW);
+  analogWrite(redLed, 0);
   digitalWrite(greenLed, LOW);
   digitalWrite(blueLed, HIGH);
   unsigned long startTime = millis();
@@ -288,7 +290,7 @@ void programmingMode()
   }
   operationalMode = 0;
   digitalWrite(blueLed, LOW);
-  digitalWrite(redLed, HIGH);
+  analogWrite(redLed, BRIGHTNESS);
 }
 
 void changeOperationalMode() //toggle between normal and always open via interrupt 0 = digital pin2
